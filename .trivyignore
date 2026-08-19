@@ -9,15 +9,12 @@
 AVD-AWS-0040
 AVD-AWS-0041
 
-# Security group rules allow unrestricted egress (0.0.0.0/0).
-# Reason: worker nodes must reach the EKS control plane, ECR, and the AWS APIs
-# they call, and there is no NAT gateway or VPC endpoint set to narrow that to.
-# Egress-any on a node security group is the default posture of every managed
-# Kubernetes setup; INGRESS is where this blueprint is strict, and the database
-# security group has no egress rules at all. Replace with VPC endpoints plus a
-# scoped egress list when outbound filtering becomes a requirement, and delete
-# this line at the same time.
-AVD-AWS-0104
+# AVD-AWS-0104 (unrestricted egress) is deliberately NOT ignored. This
+# blueprint's Terraform declares no egress rules at all — the worker nodes use
+# the EKS-managed cluster security group, and the database security group is
+# ingress-only — so the rule has nothing to fire on. If you add a security
+# group with egress 0.0.0.0/0, the CRITICAL gate stopping you is working as
+# intended: either scope the egress, or add the ID here WITH the reason.
 
 # ECR repository tags are mutable.
 # Reason: a retried deploy pushes the same commit-sha tag, and an immutable

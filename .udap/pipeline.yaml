@@ -39,7 +39,7 @@ stages:
             mvn -B -ntp checkstyle:check
           else
             GRADLE_VERSION=8.11.1
-            curl -fsSL -o /tmp/gradle.zip \
+            curl -fsSL --connect-timeout 10 --max-time 300 --retry 3 -o /tmp/gradle.zip \
               "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip"
             unzip -q /tmp/gradle.zip -d /opt
             "/opt/gradle-${GRADLE_VERSION}/bin/gradle" --no-daemon checkstyleMain checkstyleTest
@@ -60,7 +60,7 @@ stages:
             mvn -B -ntp test
           else
             GRADLE_VERSION=8.11.1
-            curl -fsSL -o /tmp/gradle.zip \
+            curl -fsSL --connect-timeout 10 --max-time 300 --retry 3 -o /tmp/gradle.zip \
               "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip"
             unzip -q /tmp/gradle.zip -d /opt
             "/opt/gradle-${GRADLE_VERSION}/bin/gradle" --no-daemon test
@@ -123,7 +123,7 @@ stages:
         # the failure surfaces three lines later as an unreadable tar error.
         run: |
           mkdir -p bin
-          curl --fail -sSL -o gitleaks.tar.gz \
+          curl --fail -sSL --connect-timeout 10 --max-time 120 --retry 3 -o gitleaks.tar.gz \
             "https://github.com/gitleaks/gitleaks/releases/download/v8.21.2/gitleaks_8.21.2_linux_x64.tar.gz"
           tar -xzf gitleaks.tar.gz -C bin gitleaks
           chmod +x bin/gitleaks
@@ -174,7 +174,7 @@ stages:
             mvn -B -ntp -DskipTests package org.cyclonedx:cyclonedx-maven-plugin:makeAggregateBom
           else
             GRADLE_VERSION=8.11.1
-            curl -fsSL -o /tmp/gradle.zip \
+            curl -fsSL --connect-timeout 10 --max-time 300 --retry 3 -o /tmp/gradle.zip \
               "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip"
             unzip -q /tmp/gradle.zip -d /opt
             "/opt/gradle-${GRADLE_VERSION}/bin/gradle" --no-daemon cyclonedxBom
@@ -204,7 +204,7 @@ stages:
             mvn -B -ntp -DskipTests package org.cyclonedx:cyclonedx-maven-plugin:makeAggregateBom
           else
             GRADLE_VERSION=8.11.1
-            curl -fsSL -o /tmp/gradle.zip \
+            curl -fsSL --connect-timeout 10 --max-time 300 --retry 3 -o /tmp/gradle.zip \
               "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip"
             unzip -q /tmp/gradle.zip -d /opt
             "/opt/gradle-${GRADLE_VERSION}/bin/gradle" --no-daemon cyclonedxBom
@@ -294,10 +294,14 @@ stages:
         #  2. Piping a remote script into a shell is itself an ERROR-severity SAST
         #     finding, so the security gate blocked on its own installer.
         #
-        # The apt repository always serves the current release.
+        # The apt repository always serves the current release. The key fetch
+        # is BOUNDED (--timeout/--tries): wget's defaults retry a hiccuping
+        # server almost forever and the job has no timeout-minutes, so a
+        # transient flake once held a deploy open for hours on this line. wget
+        # and gpg ship on every ubuntu-latest runner; nothing needs installing
+        # first.
         run: |
-          sudo apt-get install -y --no-install-recommends wget gnupg apt-transport-https
-          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key \
+          wget --timeout=30 --tries=3 -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key \
             | gpg --dearmor \
             | sudo tee /usr/share/keyrings/trivy.gpg > /dev/null
           echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb generic main" \
@@ -395,8 +399,7 @@ stages:
     steps:
       - name: Install Trivy
         run: |
-          sudo apt-get install -y --no-install-recommends wget gnupg apt-transport-https
-          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key \
+          wget --timeout=30 --tries=3 -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key \
             | gpg --dearmor \
             | sudo tee /usr/share/keyrings/trivy.gpg > /dev/null
           echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb generic main" \

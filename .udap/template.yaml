@@ -1,7 +1,7 @@
 schema_version: 1
 slug: spring-boot-eks
 kind: template
-version: 1.0.0
+version: 1.0.1
 name: Spring Boot API on Amazon EKS
 summary: Production-ready Kubernetes platform for Spring Boot services, with six database options and a security-gated delivery pipeline.
 description_path: .udap/docs/README.md
