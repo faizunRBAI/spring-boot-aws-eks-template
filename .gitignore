@@ -1,0 +1,29 @@
+target/
+build/
+.gradle/
+!gradle/wrapper/gradle-wrapper.properties
+*.class
+*.log
+.env
+.env.*
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Terraform working files — state lives in the platform-managed S3 backend.
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+crash.log
+
+# Written per project when the blueprint is instantiated.
+infra/udap.auto.tfvars
+
+# Scanner and SBOM output.
+*.sarif
+sbom-*.json
+licenses.csv
+licence-violations.txt

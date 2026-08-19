@@ -1,0 +1,18 @@
+# udap:meta cloud=aws region=__UDAP_AWS_REGION__ target=eks
+
+# database = none: the same platform without a managed database, so the design
+# card the user approves shows what will actually be built.
+
+users: API Clients { udap-type: generic.user }
+nlb: Network Load Balancer { udap-type: aws.alb }
+registry: Image Registry (ECR) { udap-type: aws.ecr }
+audit: Audit + Flow Logs { udap-type: aws.cloudwatch }
+
+vpc: VPC across 2 Availability Zones {
+  api: Spring Boot Pods (EKS) { udap-type: aws.eks }
+}
+
+users -> nlb: HTTPS
+nlb -> vpc.api: port 80
+registry -> vpc.api: image pull
+vpc.api -> audit: logs

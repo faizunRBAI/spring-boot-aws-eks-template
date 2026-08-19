@@ -1,0 +1,38 @@
+# The builder stage copies the whole tree, so this file is what keeps the build
+# context small and the image free of things it must not carry. Everything the
+# build needs — src/, pom.xml or build.gradle.kts, config/, bin/ — is
+# deliberately absent from this list.
+
+# Version control and CI
+.git
+.github
+.gitignore
+.gitattributes
+
+# Build outputs from a local build; the image builds its own
+target
+build
+.gradle
+.mvn
+
+# Deploy-time assets: the cluster and the pipeline read these from the repo,
+# never from inside the image.
+.udap
+infra
+k8s
+modules
+
+# Tooling config that is not a build input
+.trivyignore
+.gitleaks.toml
+
+# Docs
+*.md
+
+# Secrets and scanner output must never be baked in
+.env
+.env.*
+sbom-*.json
+licenses.csv
+licence-violations.txt
+*.sarif

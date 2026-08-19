@@ -1,0 +1,24 @@
+#!/bin/sh
+#
+# Migration entrypoint — the seam between the blueprint and your project.
+#
+# The blueprint decides WHEN migrations run: a Kubernetes Job in the configure
+# stage, on the image just built, before the new Deployment is applied, with the
+# deploy stopping if this exits non-zero. This script decides HOW, and it is
+# yours to replace.
+#
+# The default runs the application jar under the `migrate` profile, which turns
+# Flyway on, disables the web server and exits when the context closes. Using the
+# same artefact as the service is what stops the schema drifting from the code
+# that expects it.
+#
+#   exec java -jar /app/app.jar --spring.profiles.active=migrate   # the default
+#   exec liquibase --changelog-file=db/changelog.yaml update
+#
+# Whatever you run must be safe to run on every deploy, and must leave the schema
+# compatible with the code already serving traffic: a rolling update runs old and
+# new pods together. Expand first, contract in a later release.
+
+set -e
+
+exec java -jar /app/app.jar --spring.profiles.active=migrate

@@ -1,0 +1,276 @@
+schema_version: 1
+slug: spring-boot-eks
+kind: template
+version: 1.0.0
+name: Spring Boot API on Amazon EKS
+summary: Production-ready Kubernetes platform for Spring Boot services, with six database options and a security-gated delivery pipeline.
+description_path: .udap/docs/README.md
+
+facets:
+  clouds: [aws]
+  targets: [eks]
+  runtime: java
+  framework: spring-boot
+  database: [postgres, mysql, mariadb, oracle, aurora-postgresql, aurora-mysql, none]
+
+tags: [api, kubernetes, eks, docker, java, spring-boot, maven, gradle, postgres, mysql, mariadb, oracle, aurora, security, devsecops]
+collections: [apis-microservices]
+tier: 2
+
+presentation:
+  headline: Production-ready Kubernetes platform for Spring Boot services
+  problem_solved: >-
+    Run a Spring Boot service on managed Kubernetes, against the database your
+    organisation already standardised on, without first building the cluster, the
+    delivery pipeline and the security gates around it.
+  best_for:
+    - Enterprise APIs on the JVM
+    - Teams standardised on Oracle, MySQL or Aurora rather than Postgres
+    - Spring Boot services moving off application servers or single-VM hosting
+  includes:
+    - label: Managed Kubernetes cluster, ready for workloads
+      tech: Amazon EKS with a managed node group
+      category: compute
+    - label: Six database options, one build
+      tech: RDS Postgres, MySQL, MariaDB, Oracle SE2, Aurora PostgreSQL, Aurora MySQL
+      category: data
+    - label: Maven or Gradle, your choice at creation time
+      tech: module overlay, no wrapper jars
+      category: delivery
+    - label: Rolling releases that never drop a request
+      tech: Kubernetes rolling update, probes and Spring graceful shutdown
+      category: delivery
+    - label: A slow JVM start never kills a healthy pod
+      tech: startup probe ahead of liveness
+      category: compute
+    - label: Traffic scales with demand
+      tech: Horizontal Pod Autoscaler on CPU
+      category: compute
+    - label: Automated CI/CD pipeline with thirteen stages
+      tech: GitHub Actions
+      category: delivery
+    - label: Infrastructure as code included
+      tech: Terraform
+      category: infrastructure
+    - label: Coding-standards gate on every change
+      tech: Checkstyle
+      category: quality
+    - label: Static application security testing
+      tech: Semgrep
+      category: security
+    - label: Container images scanned before they reach the cluster
+      tech: Trivy
+      category: security
+    - label: Infrastructure scanned for misconfiguration
+      tech: Trivy config and Checkov
+      category: security
+    - label: Leaked credentials caught before deploy
+      tech: Gitleaks
+      category: security
+    - label: Software bill of materials for every release
+      tech: CycloneDX, source and image
+      category: compliance
+    - label: Dependency licences reviewed, not rubber-stamped
+      tech: CycloneDX allowlist with a written reason per copyleft entry
+      category: compliance
+    - label: Schema migrations run before traffic reaches new pods
+      tech: Flyway in a Kubernetes Job, per-vendor DDL
+      category: data
+    - label: Database connections verified, not just encrypted
+      tech: RDS certificate authorities imported into the JVM trust store
+      category: security
+    - label: Secrets encrypted with your own key
+      tech: KMS envelope encryption for Kubernetes Secrets
+      category: security
+    - label: Audit trail for the control plane and the network
+      tech: EKS control-plane logs and VPC flow logs
+      category: operations
+    - label: One-command teardown that leaves nothing behind
+      tech: Terraform destroy with load-balancer cleanup
+      category: operations
+    - label: Branded deployment landing page, live from the first deploy
+      tech: UDAP welcome page at /
+      category: docs
+    - label: Architecture documentation
+      tech: D2 diagrams
+      category: docs
+  estimated_monthly_cost:
+    currency: GBP
+    min: 140
+    max: 230
+    assumptions: >-
+      EKS control plane (about £58), two t3.medium on-demand nodes, a
+      db.t4g.micro Postgres instance with 20 GB gp3 storage, one network load
+      balancer and low traffic. Excludes data transfer, NAT (none is provisioned)
+      and CloudWatch retention beyond the free tier. The database choice moves
+      this figure the most — Oracle Standard Edition 2 with an included licence is
+      several times a Postgres instance.
+    module_deltas:
+      database:
+        none: -18
+        oracle: 90
+        aurora-postgresql: 25
+        aurora-mysql: 25
+  deploy_story: >-
+    Seven quality and security gates run first — Checkstyle, unit tests, Semgrep
+    SAST, Gitleaks secret scanning, licence compliance, SBOM generation and
+    Terraform security scanning. Only when all of them pass does Terraform create
+    the VPC, EKS cluster, node group, container registry and your chosen database
+    in your AWS account. The application is built with Maven or Gradle, pushed to
+    ECR and scanned by Trivy before it is allowed near the cluster; then Flyway
+    applies the schema as a Kubernetes Job, the manifests are applied, the rollout
+    is watched, and the load balancer is health-checked before the deploy is
+    called green. Typical first deploy is 25 to 35 minutes, most of it the EKS
+    control plane and the database coming up. Redeploys take 8 to 12 minutes.
+    Destroy removes the Kubernetes load balancer first, then everything Terraform
+    created.
+  screenshot_url: https://raw.githubusercontent.com/faizunRBAI/spring-boot-aws-eks-template/main/.udap/docs/screenshot.svg
+
+resources:
+  - EKS control plane (Kubernetes {kubernetes_version}) with audit logging
+  - Managed node group ({node_desired_size} x {node_instance_type})
+  - VPC with two public subnets and two private data subnets across 2 AZs
+  - Internet gateway and public route table (no NAT gateway)
+  - ECR repository with scan-on-push and a 20-image lifecycle policy
+  - KMS key for Kubernetes Secret envelope encryption
+  - Network load balancer fronting the API service
+  - item: RDS Postgres {db_instance_class}, encrypted, 7-day backups
+    module: database=postgres
+  - item: RDS MySQL {db_instance_class}, encrypted, 7-day backups
+    module: database=mysql
+  - item: RDS MariaDB {db_instance_class}, encrypted, 7-day backups
+    module: database=mariadb
+  - item: RDS Oracle SE2 (licence included) with the SSL option group, encrypted
+    module: database=oracle
+  - item: Aurora PostgreSQL Serverless v2 cluster with one writer, encrypted
+    module: database=aurora-postgresql
+  - item: Aurora MySQL Serverless v2 cluster with one writer, encrypted
+    module: database=aurora-mysql
+  - Flyway migration Job run before each release
+  - Kubernetes Deployment ({app_replicas} replicas), Service, HPA and PodDisruptionBudget
+  - CloudWatch log groups for VPC flow logs and the EKS control plane
+
+parameters:
+  - name: project_name
+    type: string
+    required: true
+    description: Project name; also the namespace, ECR repository and resource prefix.
+    maps_from: meta.project_name
+    maps_to:
+      kind: token
+      token: __UDAP_PROJECT__
+      paths: [README.md, src/main/resources/static/index.html]
+
+  - name: aws_region
+    type: string
+    default: eu-west-1
+    description: AWS region for every resource and for the pipeline's AWS calls.
+    maps_from: meta.region
+    maps_to:
+      kind: token
+      token: __UDAP_AWS_REGION__
+      paths:
+        - .udap/architecture.d2
+        - .udap/pipeline.yaml
+        - modules/*/.udap/architecture.d2
+        - src/main/resources/static/index.html
+
+  - name: kubernetes_version
+    type: string
+    default: '1.33'
+    description: EKS control plane minor version.
+    maps_to:
+      kind: tf_var
+      var: kubernetes_version
+
+  - name: node_instance_type
+    type: string
+    default: t3.medium
+    description: EC2 instance type for the worker nodes. A JVM wants more memory than a scripting runtime.
+    maps_to:
+      kind: tf_var
+      var: node_instance_type
+
+  - name: node_desired_size
+    type: int
+    default: 2
+    description: Number of worker nodes; the node group ceiling is this plus two.
+    maps_to:
+      kind: tf_var
+      var: node_desired_size
+
+  - name: db_instance_class
+    type: string
+    default: db.t4g.micro
+    description: RDS instance class for Postgres, MySQL and MariaDB. Aurora uses Serverless v2 and ignores this.
+    maps_to:
+      kind: tf_var
+      var: db_instance_class
+
+  - name: db_instance_class_oracle
+    type: string
+    default: db.t3.small
+    description: RDS instance class for the Oracle module. Oracle SE2 does not run on the burstable micro classes.
+    maps_to:
+      kind: tf_var
+      var: db_instance_class_oracle
+
+  - name: app_replicas
+    type: int
+    default: 2
+    description: Pod replicas, and the floor the autoscaler will not go below.
+    maps_to:
+      kind: token
+      token: __UDAP_APP_REPLICAS__
+      paths: [k8s/*.yaml]
+
+modules:
+  # Neither build tool is the base tree: both are overlays, because an overlay can
+  # add a file but never remove one. With pom.xml in the base, choosing Gradle
+  # would leave a stale, unused, still-scanned pom behind.
+  - group: build_tool
+    default: maven
+    choices:
+      maven:
+        overlay: modules/build-maven
+      gradle:
+        overlay: modules/build-gradle
+
+  # Each choice replaces infra/rds.tf wholesale, which is why every database
+  # resource and every database output lives in that one file.
+  - group: database
+    default: postgres
+    choices:
+      postgres:
+        overlay: null
+      mysql:
+        overlay: modules/db-mysql
+      mariadb:
+        overlay: modules/db-mariadb
+      oracle:
+        overlay: modules/db-oracle
+      aurora-postgresql:
+        overlay: modules/db-aurora-postgresql
+      aurora-mysql:
+        overlay: modules/db-aurora-mysql
+      none:
+        overlay: modules/db-none
+
+generated_by_agent:
+  # What to write fresh. Everything NOT listed here — the Dockerfile,
+  # .dockerignore, infra/, the pipeline spec, .trivyignore, the health and
+  # readiness endpoints, k8s/* — is the blueprint: extend it, do not replace it.
+  # See "What not to rewrite" in .udap/docs/README.md for what each rewrite costs.
+  - Controllers, services and persistence under src/main/java (keeping /health and /ready)
+  - >-
+    The migration mechanism behind bin/migrate — the schema itself, and the tool
+    that applies it. The blueprint owns only WHEN migrations run (a Job in the
+    configure stage, before the new Deployment) and ships Flyway with per-vendor
+    DDL as the default. Replacing it is expected; deleting the Job or the pipeline
+    step is not.
+  - Application-specific configuration in application.yaml and Kubernetes config
+  - Tests under src/test/java
+
+verified:
+  # Populated once a real deploy of the defaults has gone green on this version.
+  stacks: []

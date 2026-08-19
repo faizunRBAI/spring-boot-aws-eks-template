@@ -1,0 +1,49 @@
+spring:
+  application:
+    name: udap-spring-boot-eks-api
+
+  # Flyway is deliberately OFF in the running application. Migrations are a
+  # deploy step, not a startup side effect: every replica running them at once
+  # races, and a schema change that fails should stop the deploy rather than
+  # crash-loop a pod. The db-migrate Job runs the same jar with the `migrate`
+  # profile before the new Deployment is applied.
+  flyway:
+    enabled: false
+    # {vendor} resolves to postgresql, mysql, mariadb or oracle, so one build
+    # carries the right DDL for whichever database module was chosen.
+    locations: classpath:db/migration/{vendor}
+
+  datasource:
+    # SPRING_DATASOURCE_URL / _USERNAME / _PASSWORD arrive from the
+    # app-database Kubernetes Secret. Absent means no database was provisioned,
+    # and the service runs statelessly.
+    url: ${SPRING_DATASOURCE_URL:}
+    username: ${SPRING_DATASOURCE_USERNAME:}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
+    hikari:
+      maximum-pool-size: ${DB_POOL_MAX:5}
+      connection-timeout: 5000
+      validation-timeout: 3000
+
+
+server:
+  port: 8080
+  shutdown: graceful
+  error:
+    include-message: never
+    include-stacktrace: never
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+
+logging:
+  level:
+    root: INFO

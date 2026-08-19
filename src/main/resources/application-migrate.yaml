@@ -1,0 +1,13 @@
+# The `migrate` profile: apply the schema, then exit.
+#
+# web-application-type: none means the context closes as soon as startup
+# finishes, so the process exits 0 on success. A Flyway failure fails context
+# startup, which exits non-zero — which is what makes the deploy stop instead of
+# half-releasing.
+spring:
+  main:
+    web-application-type: none
+  flyway:
+    enabled: true
+    locations: classpath:db/migration/{vendor}
+    baseline-on-migrate: true
