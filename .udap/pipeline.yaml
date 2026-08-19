@@ -306,8 +306,19 @@ stages:
             | sudo tee /usr/share/keyrings/trivy.gpg > /dev/null
           echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb generic main" \
             | sudo tee /etc/apt/sources.list.d/trivy.list
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends trivy
+          # Scoped to the trivy list alone: the stock update refreshes every
+          # mirror the runner knows, none of which this step needs. Both calls
+          # are bounded so a stalled mirror is a readable failure in minutes,
+          # never a hang (the trivy deb has no dependencies, so the runner's
+          # own package lists are already sufficient for the install).
+          sudo apt-get update -qq \
+            -o Dir::Etc::sourcelist=sources.list.d/trivy.list \
+            -o Dir::Etc::sourceparts=- \
+            -o APT::Get::List-Cleanup=0 \
+            -o Acquire::http::Timeout=30 -o Acquire::Retries=2
+          sudo apt-get install -y --no-install-recommends \
+            -o Acquire::http::Timeout=30 -o Acquire::Retries=2 \
+            trivy
           trivy --version
       - name: Terraform security scan
         # Blocking on CRITICAL only, so a newly published rule cannot stop a
@@ -404,8 +415,19 @@ stages:
             | sudo tee /usr/share/keyrings/trivy.gpg > /dev/null
           echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb generic main" \
             | sudo tee /etc/apt/sources.list.d/trivy.list
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends trivy
+          # Scoped to the trivy list alone: the stock update refreshes every
+          # mirror the runner knows, none of which this step needs. Both calls
+          # are bounded so a stalled mirror is a readable failure in minutes,
+          # never a hang (the trivy deb has no dependencies, so the runner's
+          # own package lists are already sufficient for the install).
+          sudo apt-get update -qq \
+            -o Dir::Etc::sourcelist=sources.list.d/trivy.list \
+            -o Dir::Etc::sourceparts=- \
+            -o APT::Get::List-Cleanup=0 \
+            -o Acquire::http::Timeout=30 -o Acquire::Retries=2
+          sudo apt-get install -y --no-install-recommends \
+            -o Acquire::http::Timeout=30 -o Acquire::Retries=2 \
+            trivy
           trivy --version
       - name: Resolve image reference
         run: |
