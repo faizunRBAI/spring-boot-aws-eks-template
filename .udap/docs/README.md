@@ -231,6 +231,28 @@ original problem:
 | `.udap/pipeline.yaml` | the apt Trivy install, report-then-fail scanners, the reviewed licence allowlist, and poll-based waits that print the real error |
 | `.trivyignore` | every accepted finding and the reason it is accepted |
 
+### Adding a persistence framework
+
+The application's contract, enforced by `HealthEndpointsTest`, is that it
+BOOTS WITH NO DATABASE AT ALL — that is what makes `database=none` a valid
+module choice and what lets CI run the test suite without a datasource. When
+you add `spring-boot-starter-data-jpa` (or any persistence framework), your
+new beans inherit that contract:
+
+- A repository bean exists only when a datasource is configured. Never take it
+  as a plain constructor parameter in a bean that always exists — inject an
+  `ObjectProvider<YourRepository>` and resolve it per call, returning 503 (or
+  `isAvailable() == false`) when it is absent. A rigid constructor dependency
+  makes the whole context refuse to start in every no-database case: tests
+  today, `database=none` tomorrow.
+- `OptionalDataSourceEnvironmentPostProcessor` already switches off the JPA
+  auto-configurations (alongside JDBC and Flyway) when no URL is present, so
+  the framework side is handled — the contract lands on YOUR beans.
+- If a test context fails to load, the fix belongs in your beans, not in
+  `HealthEndpointsTest`. That test is the contract's enforcement; editing it
+  to pass ships an application that crash-loops the first time it starts
+  without a database.
+
 ### Version numbers are data, not opinions
 
 Every version pinned in this blueprint (the Spring Boot parent, the Checkstyle

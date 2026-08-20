@@ -28,7 +28,16 @@ public class OptionalDataSourceEnvironmentPostProcessor
     private static final String EXCLUDED = String.join(",",
         "org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration",
         "org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration",
-        "org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration");
+        "org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration",
+        // The JPA pair is excluded even though this blueprint ships plain JDBC:
+        // adding spring-boot-starter-data-jpa is the single most common thing a
+        // generated domain layer does, and without these two entries that
+        // addition crash-loops every no-database context — tests in CI and a
+        // database=none deployment alike. Spring Boot ignores excludes for
+        // classes that are not on the classpath, so listing them costs nothing
+        // until the moment they are needed.
+        "org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration",
+        "org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration");
 
     @Override
     public void postProcessEnvironment(ConfigurableEnvironment environment,
