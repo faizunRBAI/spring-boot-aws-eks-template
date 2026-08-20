@@ -86,7 +86,14 @@ resource "aws_db_instance" "this" {
 
 output "database_jdbc_url" {
   description = "JDBC URL, read by the configure stage into a Kubernetes Secret."
-  value       = "jdbc:postgresql://${aws_db_instance.this.address}:${aws_db_instance.this.port}/appdb?sslmode=verify-full"
+  # sslrootcert is NOT optional with pgjdbc: unlike the MySQL, MariaDB and
+  # Oracle drivers (which verify against the JVM trust store, where the image
+  # imported the RDS CAs), pgjdbc emulates libpq — verify-full makes it read
+  # ~/.postgresql/root.crt unless sslrootcert points somewhere else. Without
+  # this parameter every connection dies with "Could not open SSL root
+  # certificate file", from Flyway's Job and the app's pods alike. The path is
+  # where the image's Dockerfile puts the RDS global bundle.
+  value       = "jdbc:postgresql://${aws_db_instance.this.address}:${aws_db_instance.this.port}/appdb?sslmode=verify-full&sslrootcert=/app/certs/rds-global-bundle.pem"
 }
 
 output "database_username" {

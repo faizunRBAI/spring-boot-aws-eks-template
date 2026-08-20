@@ -58,10 +58,15 @@ COPY --from=build --chown=app:app /src/bin /app/bin
 
 # Import the RDS authorities into the JVM's own trust store.
 #
-# Doing it here, once, is what lets every driver verify the server with nothing
-# but its ordinary sslmode setting. The alternative is per-driver trust
-# plumbing — PostgreSQL reads a PEM, MySQL and Oracle want a keystore, MariaDB
-# wants yet another flag — which is four ways to get it subtly wrong.
+# This covers the JSSE-based drivers — MySQL, MariaDB and Oracle verify the
+# server against this store with nothing but their ordinary sslMode setting.
+# PostgreSQL is the deliberate exception: pgjdbc emulates libpq and reads a
+# PEM file (sslrootcert), never the JVM store — which is why the postgres and
+# aurora-postgresql JDBC URLs in infra/ carry
+# sslrootcert=/app/certs/rds-global-bundle.pem pointing at the bundle kept
+# below. A first real deploy proved the difference: every pg connection died
+# with "Could not open SSL root certificate file" until the URL said where the
+# bundle lives.
 RUN set -eux; \
     mkdir -p /tmp/rdscerts; \
     awk '/BEGIN CERTIFICATE/{n++} {print > ("/tmp/rdscerts/ca-" n ".pem")}' \
