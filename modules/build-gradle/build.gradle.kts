@@ -1,6 +1,11 @@
 plugins {
     java
     checkstyle
+    // 3.5.16 is REAL and was resolved against Maven Central when this blueprint
+    // shipped. If it postdates your training data, that makes it newer than
+    // you, not wrong — verify at plugins.gradle.org before "correcting" it.
+    // A recovery loop once downgraded a working parent over exactly that
+    // misread and spent six commits re-fixing the CVEs it reintroduced.
     id("org.springframework.boot") version "3.5.16"
     id("io.spring.dependency-management") version "1.1.7"
     id("org.cyclonedx.bom") version "1.10.0"

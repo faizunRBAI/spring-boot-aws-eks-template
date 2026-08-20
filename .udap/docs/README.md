@@ -230,6 +230,19 @@ original problem:
 | `infra/*.tf` | security groups with no `egress 0.0.0.0/0` rule, plain-text AWS descriptions (a character outside AWS's allowed set is rejected at apply time and invisible to `terraform validate`), the provider pin, and the empty S3 backend the platform's state contract requires |
 | `.udap/pipeline.yaml` | the apt Trivy install, report-then-fail scanners, the reviewed licence allowlist, and poll-based waits that print the real error |
 | `.trivyignore` | every accepted finding and the reason it is accepted |
+
+### Version numbers are data, not opinions
+
+Every version pinned in this blueprint (the Spring Boot parent, the Checkstyle
+tool, the pgjdbc override) was resolved against Maven Central when it shipped.
+If one postdates your training data, that makes it newer than you — not wrong.
+Verify against the registry before "correcting" any of them. A recovery loop
+once misread a test-wiring failure as "non-existent version numbers",
+downgraded a working Spring Boot 3.5.16 to 3.3.5, and then spent six commits
+re-fixing, one library at a time, the CVEs the downgrade had reintroduced.
+When an image scan flags BOM-managed libraries, the fix is the newest parent
+patch release plus a property override for anything the BOM still carries
+vulnerable — never a per-library downgrade hunt.
 | `k8s/deployment.yaml` | the startup probe that lets a JVM boot without being killed |
 | `k8s/db-migrate-job.yaml` and the migration step | migrations running before the Deployment, and a step that reports the real failure instead of a wait timeout |
 
